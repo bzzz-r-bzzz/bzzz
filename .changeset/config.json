@@ -7,5 +7,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": ["@bzzz/example-worker", "@repo/vitest-config", "@repo/typescript-config"]
 }

@@ -2,6 +2,7 @@
   "name": "@bzzz/example-worker",
   "description": "AI chat and Hono middleware for Cloudflare Workers",
   "version": "0.0.0",
+  "private": true,
   "type": "module",
   "files": ["src/worker/middleware"],
   "cloudflare": {
