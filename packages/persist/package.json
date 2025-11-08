@@ -1,0 +1,45 @@
+{
+  "name": "@bzzz/persist",
+  "author": "Rhys Burnie",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bzzz-r-bzzz/bzzz.git",
+    "directory": "packages/persist"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "A Storage wrapper with several utilities",
+  "keywords": ["Storage", "localStorage", "sessionStorage"],
+  "license": "ISC",
+  "version": "1.0.3",
+  "main": "dist/persist.umd.js",
+  "module": "dist/persist.mjs",
+  "exports": {
+    ".": {
+      "import": "./dist/persist.mjs",
+      "require": "./dist/persist.umd.js"
+    }
+  },
+  "files": ["dist/*"],
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "bench": "vitest bench",
+    "docs": "jsdoc2md --files src/*.js > DOCS.md",
+    "prepublishOnly": "vite build"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "workspace:*",
+    "@repo/vitest-config": "workspace:*",
+    "@vitest/coverage-istanbul": "^3.2.4",
+    "crypto-js": "^4.1.1",
+    "happy-dom": "^14.12.3",
+    "jsdoc-to-markdown": "^8.0.0",
+    "typescript": "latest",
+    "vite": "^6.0.0",
+    "vitest": "^3.2.4"
+  }
+}

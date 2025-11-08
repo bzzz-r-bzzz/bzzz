@@ -4,9 +4,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
-    "lib": [
-      "ESNext"
-    ],
+    "lib": ["ESNext"],
     "skipLibCheck": true,
     "noEmit": true,
     "jsxImportSource": "hono/jsx"

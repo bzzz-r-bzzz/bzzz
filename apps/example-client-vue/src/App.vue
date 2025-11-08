@@ -4,7 +4,7 @@ fetch("/api").then(async (r) => {
   const o = await r.json();
   console.log(o, r);
 });
-console.log({ArrayPlus})
+console.log({ ArrayPlus });
 </script>
 
 <template>

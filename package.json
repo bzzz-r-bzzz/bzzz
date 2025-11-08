@@ -1,11 +1,11 @@
 {
-  "name": "vitest",
+  "name": "bzzz",
   "private": true,
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
-    "lint": "biome check .",
-    "lint:fix": "biome check . --write",
+    "lint": "biome check . --max-diagnostics=200",
+    "lint:fix": "biome check . --write --max-diagnostics=200",
     "test": "turbo run test",
     "test:projects": "vitest run",
     "test:projects:watch": "vitest --watch",
@@ -14,7 +14,9 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.2",
+    "@bzzz/persist": "workspace:*",
     "@bzzz/utility": "workspace:*",
+    "@changesets/cli": "^2.29.7",
     "@repo/typescript-config": "workspace:*",
     "@repo/vitest-config": "workspace:*",
     "turbo": "^2.6.0",

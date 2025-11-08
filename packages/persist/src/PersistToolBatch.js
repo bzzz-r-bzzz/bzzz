@@ -1,0 +1,219 @@
+import { AS_NOOP, OBFUSCATION, PersistTool } from "./PersistTool.js";
+
+/**
+ * @typedef {Object} TypePersistToolBatchOptionsDefault
+ * @extends ParsistTool.TypePersistToolOptionsDefault
+ * @property {Number} [delay=500]
+ */
+
+/**
+ * @typedef {PersistTool.TypeAsNoop} TypeBatchAsNoop - `PersistToolBatch.AS_NOOP`
+ */
+
+/**
+ * @typedef {(TypePersistToolBatchOptionsDefault|TypeBatchAsNoop)} TypePersistToolOptions
+ */
+
+const batchStore = new Map();
+const TIMER_KEY = Symbol();
+const IN_PROGRESS = Symbol();
+
+/**
+ * @module
+ * @description Same API as `PersistTool` with `delay` option that batches the `Storage.setItem` but immedietly sets value to an insternal store for retrival.
+ */
+class PersistToolBatch extends PersistTool {
+  #delay;
+  #group;
+
+  static AS_NOOP = AS_NOOP;
+  static OBFUSCATION = OBFUSCATION;
+
+  /**
+   * @param {TypePersistToolBatchOptionsDefault} [options]
+   * @returns {Object} instance
+   */
+  constructor(options = {}) {
+    super(options);
+    this.#delay = this.options.delay || 500;
+    // multiple instances  have the same 'group' value based on prefix / suffix values
+    this.#group = this.options.prefix + this.options.suffix;
+  }
+
+  /**
+   * Sets item to the default Storage or Storage specified in opts with `fullKey` as key.
+   *
+   * @param {String} key
+   * @param {*} value
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {(String|undefined)} `fullKey` on undefined if `isNoop`
+   * @private
+   */
+  setItem(key, value, opts = {}, obfuscate) {
+    if (this.isNoop) return;
+    let fullKey;
+    if (value === null || typeof value === "undefined") {
+      this.removeItem(key, opts);
+    } else {
+      this.#setBatchItem(key, value, opts, obfuscate, true);
+      fullKey = this.fullKey(key);
+    }
+    return fullKey;
+  }
+
+  /**
+   * Sets item to the default Storage or Storage specified in opts with `fullKey` as key.
+   *
+   * @param {String} key
+   * @param {*} [fallback]
+   * @param {Object} [opts]
+   * @param {Boolean} [opts.raw] - get the raw storage value (instead of parsing with JSON)
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {(*|null|TypeGetFallback)}
+   * @private
+   */
+  getItem(key, fallback = null, opts = {}, deobfuscate) {
+    if (this.isNoop) return fallback;
+    // I read you can do this `super.getItem(key, fallback, opts, deobfuscate)`
+    // But I cant get that to work
+    let value = this.#getBatchItem(key, opts);
+    if (!value) {
+      value = PersistTool.prototype.getItem.call(
+        this,
+        key,
+        fallback,
+        opts,
+        deobfuscate,
+      );
+      if (value !== fallback)
+        this.#setBatchItem(key, value, opts /* set to `items` store only */);
+    }
+    return value;
+  }
+
+  /**
+   * @param {String} key
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @void
+   * @private
+   */
+  removeItem(key, opts = {}) {
+    this.#removeBatchItem(key, opts);
+    PersistTool.prototype.removeItem.call(this, key, opts);
+  }
+
+  /**
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @void
+   * @private
+   */
+  clearItems(opts = {}) {
+    if (this.isNoop) return;
+    PersistTool.prototype.clearItems.call(this, opts);
+    clearBatchStore(this.getEngine(opts), this.#group);
+  }
+
+  /**
+   * these are exposed for testing purposes
+   * but i dont want them confusing the matter
+   * if you inspect the instance
+   */
+  get _() {
+    return {
+      info: "internal functions exposed for testing",
+      getBatchItem: (key, opts) => this.#getBatchItem(key, opts),
+      setBatchItem: (key, value, opts, obfuscate, pending) =>
+        this.#setBatchItem(key, value, opts, obfuscate, pending),
+      removeBatchItem: (key, opts) => this.#removeBatchItem(key, opts),
+    };
+  }
+
+  #getBatchItem(key, opts = {}) {
+    if (this.isNoop) return;
+    return getBatchStore(this.getEngine(opts), this.#group).get("items")[key];
+  }
+
+  #setBatchItem(key, value, opts = {}, obfuscate, pending) {
+    if (this.isNoop) return;
+    const store = getBatchStore(this.getEngine(opts), this.#group);
+    // get items and pending objects and add to them
+    store.get("items")[key] = value;
+    if (!pending) return;
+    store.get("pending")[key] = { value, opts, obfuscate };
+    if (!store.has(IN_PROGRESS)) {
+      clearTimeout(store.get(TIMER_KEY));
+      store.set(
+        TIMER_KEY,
+        setTimeout(() => {
+          store.set(IN_PROGRESS, true);
+
+          const pending = { ...store.get("pending") };
+          const entries = Object.entries(pending);
+
+          if (entries.length) {
+            store.set("pending", {});
+            for (const [key, { value, opts, obfuscate }] of entries) {
+              PersistTool.prototype.setItem.call(
+                this,
+                key,
+                value,
+                opts,
+                obfuscate,
+              );
+            }
+          }
+
+          store.delete(IN_PROGRESS);
+        }, this.#delay),
+      );
+    }
+  }
+
+  #removeBatchItem(key, opts = {}) {
+    if (this.isNoop) return;
+    const store = getBatchStore(this.getEngine(opts), this.#group);
+    store.get("items")[key] = undefined;
+    store.get("pending")[key] = undefined;
+    delete store.get("items")[key];
+    delete store.get("pending")[key];
+    // I feel like we only need delete but the old tool also set undefined
+    // so perhaps there was a weird edge case reason, surely delete also results
+    // in refs being undefined?
+  }
+
+  /**
+   * @param {Object} [opts]
+   * @param {Storage} [opts.sessionStorage] - use this store instead of the default
+   * @param {Storage} [opts.localStorage] - use this store instead of the default (is the default anyway)
+   * @returns {Array} - `fullKey` values of the instance
+   * @private
+   */
+  getKeys(opts = {}) {
+    if (this.isNoop) return;
+    const store = getBatchStore(this.getEngine(opts), this.#group);
+    return Object.keys(store.get("items")).map((key) => this.fullKey(key));
+  }
+}
+
+function getBatchStore(engine, group) {
+  if (!batchStore.has(engine)) batchStore.set(engine, new Map());
+  const engineStore = batchStore.get(engine);
+  if (!engineStore.has(group)) {
+    engineStore.set(group, new Map(Object.entries({ items: {}, pending: {} })));
+  }
+  return engineStore.get(group);
+}
+
+function clearBatchStore(engine, group) {
+  const engineStore = batchStore.get(engine);
+  if (engineStore) engineStore.delete(group);
+}
+
+export { PersistToolBatch, batchStore, getBatchStore };
