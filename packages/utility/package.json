@@ -1,5 +1,16 @@
 {
   "name": "@bzzz/utility",
+  "author": "Rhys Burnie",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bzzz-r-bzzz/bzzz.git",
+    "directory": "packages/utility"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "ISC",
+  "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "tsc --watch",
