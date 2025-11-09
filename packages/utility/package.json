@@ -10,7 +10,7 @@
     "access": "public"
   },
   "license": "ISC",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "tsc --watch",
@@ -18,7 +18,9 @@
     "test": "vitest run",
     "prepublishOnly": "tsc"
   },
-  "files": ["dist/*"],
+  "files": [
+    "dist/*"
+  ],
   "exports": {
     "./ArrayPlus": {
       "types": "./dist/ArrayPlus.d.ts",
