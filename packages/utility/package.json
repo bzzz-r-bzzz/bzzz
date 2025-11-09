@@ -15,11 +15,13 @@
   "scripts": {
     "dev": "tsc --watch",
     "build": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "tsc"
   },
+  "files": ["dist/*"],
   "exports": {
     "./ArrayPlus": {
-      "types": "./src/ArrayPlus.ts",
+      "types": "./dist/ArrayPlus.d.ts",
       "default": "./dist/ArrayPlus.js"
     }
   },
